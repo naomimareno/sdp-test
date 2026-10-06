@@ -6,6 +6,7 @@ import { makeScratchDir } from "./helpers.mjs";
 import {
   addAuthorMerge,
   deleteRepository,
+  getAuthorMerge,
   getRepository,
   insertRepository,
   listAuthorMerges,
@@ -92,4 +93,21 @@ test("data survives closing and reopening the database", () => {
   const reopened = openDb(dbFile);
   assert.ok(listRepositories(reopened).some((r) => r.name === "persisted"));
   reopened.close();
+});
+
+test("rows are plain objects safe to pass to client components", () => {
+  const db = openDb(dbFile);
+  const repo = listRepositories(db)[0];
+  assert.equal(Object.getPrototypeOf(repo), Object.prototype);
+
+  const merge = addAuthorMerge(db, repo.id, {
+    canonicalName: "A",
+    canonicalEmail: "a@example.com",
+    mergedEmail: "b@example.com",
+  });
+  assert.equal(Object.getPrototypeOf(merge), Object.prototype);
+  assert.equal(Object.getPrototypeOf(getRepository(db, repo.id)), Object.prototype);
+  assert.equal(Object.getPrototypeOf(getAuthorMerge(db, merge.id)), Object.prototype);
+  assert.equal(Object.getPrototypeOf(listAuthorMerges(db, repo.id)[0]), Object.prototype);
+  db.close();
 });

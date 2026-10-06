@@ -10,6 +10,7 @@ import {
   makeScratchDir,
 } from "./helpers.mjs";
 import { ingestFromUrl, ingestFromZip } from "../lib/ingest.js";
+import { expandRenamePath } from "../lib/git.js";
 import { getRepoAnalysis } from "../lib/repos.js";
 import { addAuthorMerge, openDb } from "../lib/db.js";
 
@@ -59,6 +60,15 @@ test("full-history metrics are exact (modify, rename, delete, binary, merge excl
   assert.equal(authors.get("alice@example.com").commits, 3);
   assert.equal(authors.get("bob@example.com").commits, 3);
   assert.equal(authors.get("carol@example.com").commits, 1);
+});
+
+test("rename path expansion handles plain and brace-compressed forms", () => {
+  assert.equal(expandRenamePath("tools/x.txt => vendor/x.txt"), "vendor/x.txt");
+  assert.equal(expandRenamePath("{tools => vendor}/x.txt"), "vendor/x.txt");
+  assert.equal(expandRenamePath("src/{lib => }/util.js"), "src/util.js");
+  assert.equal(expandRenamePath("src/{ => lib}/util.js"), "src/lib/util.js");
+  assert.equal(expandRenamePath("{lib => }/util.js"), "util.js");
+  assert.equal(expandRenamePath("plain/path.js"), "plain/path.js");
 });
 
 test("a pure rename does not change metrics", async () => {
