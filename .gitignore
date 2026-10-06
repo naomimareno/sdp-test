@@ -44,3 +44,10 @@ next-env.d.ts
 *.db
 *.sqlite
 *.sqlite3
+
+# app data (repositories, sqlite database, uploads) and test scratch dirs
+/data/
+.tmp-*
+
+# tooling
+.qoder/
