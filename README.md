@@ -22,6 +22,14 @@ A web dashboard that analyses git repositories and reports file, directory, repo
 - Supports multiple repositories; all data is stored under `data/` (SQLite database plus cloned repositories) and survives restarts.
 - Filter by repository, author, file/directory, and commits (a specified time period or a manual selection) — planned next.
 
+## Reference validation
+
+The lecturer's reference metrics (`repo-references/*.csv`) are not committed. `tests/reference.test.mjs` compares the engine's output against them exactly — every repository, file, directory and author row — and skips gracefully when the data is absent. To run the comparison locally:
+
+1. Put the reference CSVs in `~/Downloads/repo-references` (or point `RAT_REFERENCE_DIR` at them).
+2. `node scripts/fetch-reference-repos.mjs` — clones cJSON, redis and git at the exact reference commits into `data/ref-repos/` (gitignored; git.git is a large download).
+3. `npm test`.
+
 ## Project docs
 
 - [BRIEF.md](./BRIEF.md) — the test brief (source of truth for requirements).

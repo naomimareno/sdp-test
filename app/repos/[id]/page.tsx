@@ -7,15 +7,24 @@ import { getRepoAnalysis } from "@/lib/repos";
 
 export const dynamic = "force-dynamic";
 
-type MetricsRow = { path: string; added: number; removed: number; growth: number; churn: number };
+type MetricsRow = {
+  path: string;
+  added: number;
+  removed: number;
+  growth: number;
+  churn: number;
+  modifications: number;
+};
 
 const number = new Intl.NumberFormat("en-US");
+const decimal = new Intl.NumberFormat("en-US", { maximumFractionDigits: 3 });
+const percent = new Intl.NumberFormat("en-US", { style: "percent", maximumFractionDigits: 1 });
 
 function MetricCard({ label, value }: { label: string; value: number }) {
   return (
     <div className="rounded-lg border border-zinc-200 bg-white p-4">
       <p className="text-xs uppercase tracking-wide text-zinc-500">{label}</p>
-      <p className="mt-1 text-2xl font-semibold tabular-nums">{number.format(value)}</p>
+      <p className="mt-1 text-2xl font-semibold tabular-nums">{decimal.format(value)}</p>
     </div>
   );
 }
@@ -38,6 +47,7 @@ function MetricsTable({ title, firstHeader, rows }: { title: string; firstHeader
                 <th className="px-4 py-2 text-right font-medium">Removed</th>
                 <th className="px-4 py-2 text-right font-medium">Growth</th>
                 <th className="px-4 py-2 text-right font-medium">Churn</th>
+                <th className="px-4 py-2 text-right font-medium">Mods</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100">
@@ -48,6 +58,7 @@ function MetricsTable({ title, firstHeader, rows }: { title: string; firstHeader
                   <td className="px-4 py-1.5 text-right tabular-nums">{number.format(row.removed)}</td>
                   <td className="px-4 py-1.5 text-right tabular-nums">{number.format(row.growth)}</td>
                   <td className="px-4 py-1.5 text-right tabular-nums">{number.format(row.churn)}</td>
+                  <td className="px-4 py-1.5 text-right tabular-nums">{number.format(row.modifications)}</td>
                 </tr>
               ))}
             </tbody>
@@ -67,6 +78,8 @@ export default async function RepoPage({ params }: { params: Promise<{ id: strin
   if (!analysis) notFound();
 
   const { repo, authors, merges, mailmapEntries, metrics } = analysis;
+
+  const contributions = new Map(metrics.totals.authors.map((a) => [`${a.name} <${a.email}>`, a]));
 
   const directories = [...metrics.directories]
     .filter((d) => d.path !== "/")
@@ -94,16 +107,21 @@ export default async function RepoPage({ params }: { params: Promise<{ id: strin
 
       <section>
         <h2 className="mb-3 text-lg font-semibold">Repository metrics</h2>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <MetricCard label="Commits" value={metrics.commitCount} />
           <MetricCard label="Added" value={metrics.totals.added} />
           <MetricCard label="Removed" value={metrics.totals.removed} />
           <MetricCard label="Growth" value={metrics.totals.growth} />
           <MetricCard label="Churn" value={metrics.totals.churn} />
+          <MetricCard label="Modifications" value={metrics.totals.modifications} />
+          <MetricCard label="Modification frequency" value={metrics.totals.modificationFrequency} />
+          <MetricCard label="Churn rate" value={metrics.totals.churnRate} />
         </div>
         <p className="mt-2 text-xs text-zinc-500">
           Whole history of HEAD, excluding merge commits; committer date; the initial commit is measured against an
-          empty tree. Growth = added − removed, churn = added + removed. Binary files are not measured.
+          empty tree. Growth = added − removed, churn = added + removed. A modification is a commit that changed the
+          object; modification frequency and churn rate divide modifications and churn by the number of commits.
+          Binary files are not measured.
         </p>
       </section>
 
@@ -119,25 +137,37 @@ export default async function RepoPage({ params }: { params: Promise<{ id: strin
                   <th className="px-4 py-2 font-medium">Author</th>
                   <th className="px-4 py-2 font-medium">Email</th>
                   <th className="px-4 py-2 text-right font-medium">Commits</th>
+                  <th className="px-4 py-2 text-right font-medium">Churn</th>
+                  <th className="px-4 py-2 text-right font-medium">Ownership</th>
                   <th className="px-4 py-2 font-medium">Merged identities</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100">
-                {authors.map((author) => (
-                  <tr key={author.email} className="hover:bg-zinc-50">
-                    <td className="px-4 py-2">{author.name}</td>
-                    <td className="break-all px-4 py-2 font-mono text-xs">{author.email}</td>
-                    <td className="px-4 py-2 text-right tabular-nums">{number.format(author.commits)}</td>
-                    <td className="px-4 py-2 text-xs text-zinc-500">
-                      {author.aliases.length === 0 ? "—" : author.aliases.join(", ")}
-                    </td>
-                  </tr>
-                ))}
+                {authors.map((author) => {
+                  const contribution = contributions.get(`${author.name} <${author.email}>`);
+                  return (
+                    <tr key={`${author.name} <${author.email}>`} className="hover:bg-zinc-50">
+                      <td className="px-4 py-2">{author.name}</td>
+                      <td className="break-all px-4 py-2 font-mono text-xs">{author.email}</td>
+                      <td className="px-4 py-2 text-right tabular-nums">{number.format(author.commits)}</td>
+                      <td className="px-4 py-2 text-right tabular-nums">
+                        {contribution ? number.format(contribution.churn) : "—"}
+                      </td>
+                      <td className="px-4 py-2 text-right tabular-nums">
+                        {contribution ? percent.format(contribution.ownership) : "—"}
+                      </td>
+                      <td className="px-4 py-2 text-xs text-zinc-500">
+                        {author.aliases.length === 0 ? "—" : author.aliases.join(", ")}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           )}
         </div>
         <p className="text-xs text-zinc-500">
+          Ownership is each author&apos;s share of this repository&apos;s churn.{" "}
           {mailmapEntries === 0
             ? "No .mailmap was found in this repository."
             : `${number.format(mailmapEntries)} identit${mailmapEntries === 1 ? "y" : "ies"} folded automatically from the repository's .mailmap.`}

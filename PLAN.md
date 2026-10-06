@@ -4,23 +4,25 @@ Source: BRIEF.md. Marks are planning estimates derived from the rubric (Requirem
 
 ## Features
 
-| ID | Feature | Marks | Difficulty |
-|----|---------|-------|------------|
-| F01 | Repository upload — zip file (contains .git file or directory) | 4 | medium |
-| F02 | Repository upload — remote URL, deeply cloned (full history) | 4 | easy |
-| F03 | Multiple repository support | 1 | easy |
-| F04 | Author merging via .mailmap | 2 | medium |
-| F05 | Manual author merging (when no mailmap is provided) | 1 | easy |
-| F06 | Filtering — by repository | 2 | easy |
-| F07 | Filtering — by author | 2 | easy |
-| F08 | Filtering — by file or directory | 2 | easy |
-| F09 | Filtering — commits by specified period of time | 2 | easy |
-| F10 | Filtering — manually selected list of commits | 2 | medium |
-| F11 | File metrics — added, removed, growth, churn | 6 | easy |
-| F12 | Directory metrics — added, removed, growth, churn (immediate children) | 7 | medium |
-| F13 | Repository metrics — directory metrics on the root | 3 | easy |
-| F14 | Commit set metrics — sums, modifications, modification frequency, churn rate | 6 | medium |
-| F15 | Author metrics — author modifications, author churn, ownership | 6 | medium |
+Status convention: **done** = implemented, automated tests pass, and verified in the browser; **testing** = implemented and covered by `npm test`, waiting for browser verification; blank = not implemented yet.
+
+| ID | Feature | Marks | Difficulty | Status |
+|----|---------|-------|------------|--------|
+| F01 | Repository upload — zip file (contains .git file or directory) | 4 | medium | testing |
+| F02 | Repository upload — remote URL, deeply cloned (full history) | 4 | easy | testing |
+| F03 | Multiple repository support | 1 | easy | testing |
+| F04 | Author merging via .mailmap | 2 | medium | testing |
+| F05 | Manual author merging (when no mailmap is provided) | 1 | easy | testing |
+| F06 | Filtering — by repository | 2 | easy | |
+| F07 | Filtering — by author | 2 | easy | |
+| F08 | Filtering — by file or directory | 2 | easy | |
+| F09 | Filtering — commits by specified period of time | 2 | easy | |
+| F10 | Filtering — manually selected list of commits | 2 | medium | |
+| F11 | File metrics — added, removed, growth, churn | 6 | easy | testing |
+| F12 | Directory metrics — added, removed, growth, churn (immediate children) | 7 | medium | testing |
+| F13 | Repository metrics — directory metrics on the root | 3 | easy | testing |
+| F14 | Commit set metrics — sums, modifications, modification frequency, churn rate | 6 | medium | testing |
+| F15 | Author metrics — author modifications, author churn, ownership | 6 | medium | testing |
 
 Feature marks subtotal: 50 (Requirements criterion).
 
@@ -72,4 +74,5 @@ Rule: core first, then EASY features with the MOST marks, hard features last.
 ## Verification notes
 
 - Metric correctness is checked against the provided repos (cJSON, Redis, Git) at the provided commit hashes using the provided sample metrics.
+- State of validation: the engine reproduces all three reference CSVs exactly — 0 mismatches across repository, file, directory and author rows (cJSON 955 commits, redis 11 874, git 61 101) — see `tests/reference.test.mjs`.
 - Rubric tiers are cumulative: a tier is only reached if the previous tier is satisfied.
