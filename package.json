@@ -4,10 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "test": "node --test \"tests/**/*.test.mjs\"",
+    "dev": "node scripts/launch.mjs next-dev",
+    "build": "node scripts/launch.mjs next-build",
+    "start": "node scripts/launch.mjs next-start",
+    "test": "node scripts/launch.mjs test",
     "lint": "eslint"
   },
   "dependencies": {

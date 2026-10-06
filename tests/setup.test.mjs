@@ -13,6 +13,18 @@ test("package.json exposes dev, build and test scripts", () => {
   }
 });
 
+test("npm scripts run through the Node version launcher", () => {
+  const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
+  for (const script of ["dev", "build", "start", "test"]) {
+    assert.match(
+      pkg.scripts[script],
+      /scripts\/launch\.mjs/,
+      `npm run ${script} must go through the launcher so old system Node still works`
+    );
+  }
+  accessSync(join(root, "scripts", "launch.mjs"), constants.R_OK);
+});
+
 test("README.md starts with \"How to run\"", () => {
   const readme = readFileSync(join(root, "README.md"), "utf8");
   assert.match(readme, /^# How to run/);
