@@ -13,10 +13,10 @@ Status convention: **done** = implemented, automated tests pass, and verified in
 | F03 | Multiple repository support | 1 | easy | testing |
 | F04 | Author merging via .mailmap | 2 | medium | testing |
 | F05 | Manual author merging (when no mailmap is provided) | 1 | easy | testing |
-| F06 | Filtering — by repository | 2 | easy | |
-| F07 | Filtering — by author | 2 | easy | |
-| F08 | Filtering — by file or directory | 2 | easy | |
-| F09 | Filtering — commits by specified period of time | 2 | easy | |
+| F06 | Filtering — by repository | 2 | easy | testing |
+| F07 | Filtering — by author | 2 | easy | testing |
+| F08 | Filtering — by file or directory | 2 | easy | testing |
+| F09 | Filtering — commits by specified period of time | 2 | easy | testing |
 | F10 | Filtering — manually selected list of commits | 2 | medium | |
 | F11 | File metrics — added, removed, growth, churn | 6 | easy | testing |
 | F12 | Directory metrics — added, removed, growth, churn (immediate children) | 7 | medium | testing |

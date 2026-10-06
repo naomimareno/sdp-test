@@ -111,6 +111,30 @@ test("derived metrics: modifications, frequency, churn rate and ownership are ex
   assert.equal(appAuthors.get("alice@example.com").ownership, 5 / 9);
 });
 
+test("author filter reproduces that author's reference-exact contribution metrics", async () => {
+  const fixture = buildMetricsFixture(path.join(scratch, "author-filter-fixture"));
+  const repo = await ingestFromUrl(db, fixture);
+  const analysis = await getRepoAnalysis(db, repo.id, { authorEmail: "alice@example.com" });
+
+  assert.equal(analysis.metrics.commitCount, 3, "only Alice's commits form the commit set");
+  expectMetrics(analysis.metrics.totals, {
+    added: 11,
+    removed: 2,
+    growth: 9,
+    churn: 13,
+    modifications: 3,
+    modificationFrequency: 1,
+    churnRate: 13 / 3,
+  });
+
+  const files = byPath(analysis.metrics.files);
+  assert.ok(files.get("src/app.ts"), "a file she touched is present");
+  assert.equal(files.has("src/lib/new.ts"), false, "files only Bob or Carol touched are excluded");
+  assert.equal(analysis.setAuthors.length, 1);
+  assert.equal(analysis.setAuthors[0].commits, 3);
+  assert.equal(analysis.authors.length, 3, "the selector still lists every author");
+});
+
 test("rename path expansion handles plain and brace-compressed forms", () => {
   assert.equal(expandRenamePath("tools/x.txt => vendor/x.txt"), "vendor/x.txt");
   assert.equal(expandRenamePath("{tools => vendor}/x.txt"), "vendor/x.txt");

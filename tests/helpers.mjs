@@ -41,13 +41,14 @@ export function removeFile(repoDir, relPath) {
   fs.rmSync(path.join(repoDir, relPath));
 }
 
-export function commitAs(repoDir, message, { name, email }) {
+export function commitAs(repoDir, message, { name, email }, date) {
   git(repoDir, ["add", "-A"]);
   const env = {
     GIT_AUTHOR_NAME: name,
     GIT_AUTHOR_EMAIL: email,
     GIT_COMMITTER_NAME: name,
     GIT_COMMITTER_EMAIL: email,
+    ...(date ? { GIT_AUTHOR_DATE: date, GIT_COMMITTER_DATE: date } : {}),
   };
   git(repoDir, ["commit", "--allow-empty", "-m", message], env);
   return git(repoDir, ["rev-parse", "HEAD"]).trim();
@@ -119,6 +120,18 @@ export function buildRenameFixture(dir) {
   fs.mkdirSync(path.join(dir, "vendor"), { recursive: true });
   git(dir, ["mv", "tools/x.txt", "vendor/x.txt"]);
   commitAs(dir, "c2 pure rename", ALICE);
+  return dir;
+}
+
+/** Three commits with fixed committer dates: 2020-06-15 (Alice), 2021-06-15 (Bob), 2022-06-15 (Carol). */
+export function buildDatedFixture(dir) {
+  initRepo(dir);
+  writeFile(dir, "a.txt", "a1\n");
+  commitAs(dir, "c1 2020", ALICE, "2020-06-15T12:00:00Z");
+  writeFile(dir, "b.txt", "b1\n");
+  commitAs(dir, "c2 2021", BOB, "2021-06-15T12:00:00Z");
+  writeFile(dir, "c.txt", "c1\n");
+  commitAs(dir, "c3 2022", CAROL, "2022-06-15T12:00:00Z");
   return dir;
 }
 
