@@ -17,7 +17,7 @@ Status convention: **done** = implemented, automated tests pass, and verified in
 | F07 | Filtering — by author | 2 | easy | testing |
 | F08 | Filtering — by file or directory | 2 | easy | testing |
 | F09 | Filtering — commits by specified period of time | 2 | easy | testing |
-| F10 | Filtering — manually selected list of commits | 2 | medium | |
+| F10 | Filtering — manually selected list of commits | 2 | medium | testing |
 | F11 | File metrics — added, removed, growth, churn | 6 | easy | testing |
 | F12 | Directory metrics — added, removed, growth, churn (immediate children) | 7 | medium | testing |
 | F13 | Repository metrics — directory metrics on the root | 3 | easy | testing |
@@ -74,5 +74,6 @@ Rule: core first, then EASY features with the MOST marks, hard features last.
 ## Verification notes
 
 - Metric correctness is checked against the provided repos (cJSON, Redis, Git) at the provided commit hashes using the provided sample metrics.
+- C02 baseline (2026-10-06): dependency-free horizontal bar charts on the repository page — top authors and top paths by churn in the current commit set. Richer per-object visualisation still planned; F10 commit picker lives above the results.
 - State of validation: the engine reproduces all three reference CSVs exactly — 0 mismatches across repository, file, directory and author rows (cJSON 955 commits, redis 11 874, git 61 101) — see `tests/reference.test.mjs`.
 - Rubric tiers are cumulative: a tier is only reached if the previous tier is satisfied.

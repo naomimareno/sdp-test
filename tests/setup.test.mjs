@@ -13,16 +13,18 @@ test("package.json exposes dev, build and test scripts", () => {
   }
 });
 
-test("npm scripts run through the Node version launcher", () => {
+test("npm scripts run directly on the system Node", () => {
   const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
-  for (const script of ["dev", "build", "start", "test"]) {
-    assert.match(
-      pkg.scripts[script],
-      /scripts\/launch\.mjs/,
-      `npm run ${script} must go through the launcher so old system Node still works`
-    );
-  }
-  accessSync(join(root, "scripts", "launch.mjs"), constants.R_OK);
+  assert.equal(pkg.scripts.dev, "next dev");
+  assert.equal(pkg.scripts.build, "next build");
+  assert.equal(pkg.scripts.start, "next start");
+  assert.match(pkg.scripts.test, /^node --test\b/, "tests run with the system Node test runner");
+});
+
+test("package.json allows the university Node 18 runtime", () => {
+  const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
+  assert.ok(pkg.engines && pkg.engines.node, "engines.node documents the supported Node range");
+  assert.equal(pkg.engines.node, ">=18.18");
 });
 
 test("README.md starts with \"How to run\"", () => {

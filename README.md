@@ -1,11 +1,9 @@
 # How to run
 
-**Node version: 22.5 or higher recommended** — Next.js 16 needs Node 20.9+, and the app stores its data with the built-in `node:sqlite` module, which is available unflagged from Node 22.5 (check with `node -v`).
+**Node version: 18.18 or higher** — everything runs on the university's Node 18.19.1 with no version switches or downloads. Next.js 15 supports Node 18, and the app stores its data with `better-sqlite3`, a native SQLite driver that works on Node 18 (check your version with `node -v`).
 
-On an older Node (like 18), the commands below still work: the project detects the old version and automatically re-runs itself with Node 22 via `npx` (the first fallback may download it once, so it needs network access).
-
-1. `npm install` — install dependencies (`EBADENGINE` warnings on old Node are harmless; the install completes)
-2. `npm run dev` — start the app on http://localhost:3000 (falls back to Node 22 automatically if your Node is too old)
+1. `npm install` — install dependencies (`EBADENGINE` warnings are harmless; the install completes)
+2. `npm run dev` — start the app on http://localhost:3000
 3. `./start.sh` — runs `npm install` followed by `npm run dev` in one step
 
 `start.sh` must stay executable: `chmod +x start.sh`.

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import BarChart from "@/app/components/BarChart";
 import DeleteRepoButton from "@/app/components/DeleteRepoButton";
 import MergesPanel from "@/app/components/MergesPanel";
 import { getDb, listRepositories } from "@/lib/db";
@@ -106,18 +107,23 @@ export default async function RepoPage({
   const fromDate = first(query.from)?.trim() || undefined;
   const toDate = first(query.to)?.trim() || undefined;
   const pathFilter = first(query.path)?.trim() ?? "";
+  const commitsParam = query.commits;
+  const selectedHashes = (Array.isArray(commitsParam) ? commitsParam : commitsParam === undefined ? [] : [commitsParam])
+    .map((hash) => hash.trim())
+    .filter(Boolean);
 
   const db = getDb();
   const analysis = await getRepoAnalysis(db, repoId, {
     authorEmail,
     from: utcInstant(fromDate),
     to: endOfDayUtcInstant(toDate),
+    commits: selectedHashes,
   });
   if (!analysis) notFound();
 
   const repositories = listRepositories(db);
   const { repo, authors, setAuthors, merges, mailmapEntries, metrics, commitCount, filters } = analysis;
-  const isFiltered = Boolean(filters.authorEmail || filters.from || filters.to);
+  const isFiltered = Boolean(filters.authorEmail || filters.from || filters.to || filters.commits);
 
   const contributions = new Map(metrics.totals.authors.map((a) => [`${a.name} <${a.email}>`, a]));
 
@@ -135,6 +141,20 @@ export default async function RepoPage({
       : (metrics.files.find((f) => f.path === pathFilter) ??
         metrics.directories.find((d) => d.path !== "/" && d.path === pathFilter) ??
         null);
+
+  // F10: commit picker data (newest first; capped for very large histories).
+  const MAX_PICKER = 500;
+  const pickerCommits = analysis.commits.slice(0, MAX_PICKER);
+  const selectedSet = new Set(selectedHashes.map((hash) => hash.toLowerCase()));
+  const pickerHashes = new Set(pickerCommits.map((commit) => commit.hash.toLowerCase()));
+  const extraSelected = selectedHashes.filter((hash) => !pickerHashes.has(hash.toLowerCase()));
+
+  // C02 baseline charts.
+  const topAuthors = [...metrics.totals.authors]
+    .sort((a, b) => b.churn - a.churn)
+    .slice(0, 8)
+    .map((author) => ({ label: `${author.name} <${author.email}>`, value: author.churn }));
+  const topPaths = files.slice(0, 8).map((file) => ({ label: file.path, value: file.churn }));
 
   return (
     <div className="space-y-6">
@@ -200,6 +220,9 @@ export default async function RepoPage({
           File or directory
           <input type="text" name="path" defaultValue={pathFilter} placeholder="e.g. src/lib" className={inputClass} />
         </label>
+        {selectedHashes.map((hash) => (
+          <input key={hash} type="hidden" name="commits" value={hash} />
+        ))}
         <button type="submit" className="rounded bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-700">
           Apply filters
         </button>
@@ -208,12 +231,75 @@ export default async function RepoPage({
         </Link>
       </form>
 
+      <section className="rounded-lg border border-zinc-200 bg-white">
+        <h2 className="border-b border-zinc-200 px-4 py-2 font-semibold">
+          Commit picker{" "}
+          <span className="text-sm font-normal text-zinc-500">
+            tick commits to restrict the commit set to exactly those commits; combines with the filters above
+          </span>
+        </h2>
+        {analysis.commits.length === 0 ? (
+          <p className="px-4 py-6 text-sm text-zinc-500">No commits found.</p>
+        ) : (
+          <form method="get" action={`/repos/${repo.id}`} className="space-y-3 p-4">
+            <input type="hidden" name="author" value={authorEmail ?? ""} />
+            <input type="hidden" name="from" value={fromDate ?? ""} />
+            <input type="hidden" name="to" value={toDate ?? ""} />
+            <input type="hidden" name="path" value={pathFilter} />
+            <div className="max-h-72 overflow-auto rounded border border-zinc-200">
+              <table className="w-full text-left text-sm">
+                <tbody className="divide-y divide-zinc-100">
+                  {pickerCommits.map((commit) => (
+                    <tr key={commit.hash} className="hover:bg-zinc-50">
+                      <td className="px-3 py-1">
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            name="commits"
+                            value={commit.hash}
+                            defaultChecked={selectedSet.has(commit.hash.toLowerCase())}
+                          />
+                          <span className="font-mono text-xs">{commit.hash.slice(0, 10)}</span>
+                        </label>
+                      </td>
+                      <td className="px-3 py-1 text-xs text-zinc-500">{commit.date}</td>
+                      <td className="px-3 py-1 text-xs">{commit.name}</td>
+                      <td className="px-3 py-1 text-xs text-zinc-400">{commit.email}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {extraSelected.map((hash) => (
+              <input key={hash} type="hidden" name="commits" value={hash} />
+            ))}
+            <div className="flex flex-wrap items-center gap-3">
+              <button type="submit" className="rounded bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-zinc-700">
+                Apply commit selection
+              </button>
+              <span className="text-xs text-zinc-500">
+                {selectedHashes.length > 0 ? `${number.format(selectedHashes.length)} selected. ` : ""}
+                Showing the newest {number.format(pickerCommits.length)} of {number.format(commitCount)} commits
+                {analysis.commits.length > MAX_PICKER
+                  ? ` (capped at ${number.format(MAX_PICKER)}; older commits can be reached with the filters above)`
+                  : " (all)"}
+                .
+              </span>
+            </div>
+          </form>
+        )}
+      </section>
+
       {isFiltered ? (
         <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900">
           Commit set: {filters.authorEmail ? `author ${filters.authorEmail}` : "all authors"}
           {fromDate ? `, from ${fromDate}` : ""}
-          {toDate ? `, to ${toDate} (inclusive)` : ""} — {number.format(metrics.commitCount)} of{" "}
-          {number.format(commitCount)} commits. Every metric below is computed on this commit set.
+          {toDate ? `, to ${toDate} (inclusive)` : ""}
+          {filters.commits
+            ? `, ${number.format(filters.commits.length)} picked commit${filters.commits.length === 1 ? "" : "s"}`
+            : ""}{" "}
+          — {number.format(metrics.commitCount)} of {number.format(commitCount)} commits. Every metric below is computed
+          on this commit set.
         </p>
       ) : null}
 
@@ -237,6 +323,11 @@ export default async function RepoPage({
           modification frequency and churn rate divide modifications and churn by the number of commits. Binary files
           are not measured.
         </p>
+      </section>
+
+      <section className="grid items-start gap-4 lg:grid-cols-2">
+        <BarChart title="Top authors by churn" note="top 8 in the commit set" entries={topAuthors} />
+        <BarChart title="Top paths by churn" note="top 8 in the commit set" entries={topPaths} />
       </section>
 
       {pathFilter !== "" ? (

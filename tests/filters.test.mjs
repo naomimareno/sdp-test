@@ -116,6 +116,52 @@ test("date-window filter narrows the commit set; empty windows stay consistent",
   assert.deepEqual(empty.metrics.files, []);
 });
 
+test("manual commit list (F10) keeps exactly the picked hashes and combines with other filters", () => {
+  assert.deepEqual(hashes(selectCommits(commits, identities, { commits: ["1", "3"] })), ["1", "3"]);
+  assert.deepEqual(hashes(selectCommits(commits, identities, { commits: ["2"] })), ["2"]);
+  assert.deepEqual(
+    hashes(selectCommits(commits, identities, { commits: [] })),
+    ["1", "2", "3"],
+    "an empty pick list keeps the whole history"
+  );
+  assert.deepEqual(
+    hashes(selectCommits(commits, identities, { commits: ["2"], authorEmail: "bob@example.com" })),
+    ["2"],
+    "pick list and author filter AND together"
+  );
+  assert.deepEqual(
+    hashes(selectCommits(commits, identities, { commits: ["3"], authorEmail: "bob@example.com" })),
+    [],
+    "a pick that contradicts the author filter selects nothing"
+  );
+  assert.deepEqual(
+    hashes(selectCommits(commits, identities, { commits: ["1"], from: "2022-01-01T00:00:00Z" })),
+    [],
+    "a pick outside the date window selects nothing"
+  );
+});
+
+test("manual commit selection drives the commit set over a real repository (F10)", async () => {
+  const fixture = buildDatedFixture(path.join(scratch, "dated-pick-fixture"));
+  const repo = await ingestFromUrl(db, fixture);
+
+  const all = await getRepoAnalysis(db, repo.id);
+  assert.equal(all.commits.length, 3, "the analysis exposes every commit for the picker");
+  const bobCommit = all.commits.find((c) => c.email === "bob@example.com");
+  assert.ok(bobCommit && bobCommit.hash && bobCommit.date, "picker entries carry hash, date and resolved identity");
+
+  const picked = await getRepoAnalysis(db, repo.id, { commits: [bobCommit.hash] });
+  assert.equal(picked.metrics.commitCount, 1);
+  assert.deepEqual(picked.metrics.files.map((f) => f.path), ["b.txt"], "only the picked commit is measured");
+  assert.deepEqual(picked.filters.commits, [bobCommit.hash]);
+
+  const none = await getRepoAnalysis(db, repo.id, {
+    commits: [bobCommit.hash],
+    authorEmail: "alice@example.com",
+  });
+  assert.equal(none.metrics.commitCount, 0, "the pick list combines with the other filters");
+});
+
 test("repository selection yields each repository's own metrics", async () => {
   const first = await ingestFromUrl(db, buildSimpleRepo(path.join(scratch, "repo-one")));
   const second = await ingestFromUrl(db, buildDatedFixture(path.join(scratch, "repo-two")));

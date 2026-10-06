@@ -51,3 +51,4 @@ next-env.d.ts
 
 # tooling
 .qoder/
+/.npm-cache/
